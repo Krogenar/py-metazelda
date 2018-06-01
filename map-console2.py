@@ -128,6 +128,11 @@ class MapGenerator(object):
             display_str = "\n".join(display_lst)
             print(display_str)
 
+    def view_key_levels(self, map, **kwargs):
+        """ This will show key levels for each room."""
+        if map.__class__.__name__ == 'Map':
+            print("\n".join(map.get_graph_display_keys()))
+
     def set_view_radius(self, radius):
         radius = int(radius)
         if radius >= 4:
