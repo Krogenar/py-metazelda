@@ -382,7 +382,7 @@ class MapGenerator(object):
     def auto_dig(self, map):
         map.recursive_backtrack3()
 
-    def dig(self, map, view=True, **kwargs):
+    def dig(self, map, direction, view=True, **kwargs):
         """
         When passed a direction, this will set the node in that
         direction to 'carved' -- without a direction, the current node
@@ -392,7 +392,7 @@ class MapGenerator(object):
         :param kwargs: direction=str, row=int, col=int, level=int, q=int, move=bool, directed=bool
         :return:
         """
-        map.dig(**kwargs)
+        map.dig(direction=direction, **kwargs)
         if view:
             self.view(map)
 
