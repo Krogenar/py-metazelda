@@ -1,7 +1,7 @@
 # py-metazelda
 Python-based level generation, inspired by MetaZelda.
 
-"""
+'''
 Some example usage below.
 
 >>> g = Map()
@@ -304,4 +304,4 @@ Some example usage below.
 | ^         | ^ | ^ | ^   ^ |     ^ | O |
 +---+---+---+---+---+---+---+---+---+---+
 
-"""
+'''
