@@ -128,11 +128,6 @@ class MapGenerator(object):
             display_str = "\n".join(display_lst)
             print(display_str)
 
-    def view_key_levels(self, map, **kwargs):
-        """ This will show key levels for each room."""
-        if map.__class__.__name__ == 'Map':
-            print("\n".join(map.get_graph_display_keys()))
-
     def set_view_radius(self, radius):
         radius = int(radius)
         if radius >= 4:
@@ -376,8 +371,24 @@ class MapGenerator(object):
             ".__ or ! = door exits, colored by keylevel"
         ]
 
-    def display_legend_data(self):
-        data = self.get_legend_data()
+    def display_legend(self):
+        legend = self.get_legend()
+        for line in legend:
+            print(line)
+
+    def get_map_data(self, map):
+        cur_row, cur_col, cur_lev, cur_q = map.get_current_position()
+        data = map.data
+
+        repr_lst = [
+            "{} class object with a description of: '{}'".format(type(map), data["description"]),
+            "id: '{}' with dimensions: {} rows, by {} columns and {} level(s)".format(data["id"], data["dim_y"], data["dim_x"], data["dim_z"]),
+            "Current Position is: row: {}, column: {}, level: {}, q_dim: {}".format(cur_row, cur_col, cur_lev, cur_q)
+        ]
+        return repr_lst
+
+    def display_map_data(self, map):
+        data = self.get_map_data(map)
         for line in data:
             print(line)
 
@@ -459,7 +470,7 @@ class Map(object):
     SIGNATURE = '"name"="Map Name", "author"="str", "rows"="int", "columns"="int", "levels"="int", "max_carved_nodes_percent"="int"'
     COMMANDS = []
 
-    def __init__(self, name=None, seed=None, author=None, description='A Map object.', rows=3, columns=3, levels=1, phases=1, max_carved_nodes_percent=100, autocarve=True, random_start=False, draw=False, river=50, keys=0):
+    def __init__(self, name=None, seed=None, author=None, description='A Map object.', rows=3, columns=3, levels=1, phases=1, max_carved_nodes_percent=100, autocarve=True, random_start=False, river=50, keys=0):
         """
         Remove seed, max_carved, autocarve, randomstart, draw, river and keys from this, place in MapGenerator instead.
         """
@@ -469,6 +480,7 @@ class Map(object):
         self.data["description"] = description
         self.data["class"] = self.__class__.__name__  # For brain export/import.
         self.data["locked"] = False   # If True, cannot be edited, not implemented yet.
+        self.data["author"] = author
 
         if seed:
             self.data["seed"] = int(seed)
@@ -476,9 +488,9 @@ class Map(object):
 
         # Defaults, overridden by kwargs possibly.
         self.data["dim_x"] = int(columns)  # columns
-        self.data["dim_y"] = int(rows)  # rows
-        self.data["dim_z"] = int(levels)  # levels
-        self.data["dim_q"] = int(phases)  # Fourth dimension 'hither/yon' hither = u, yon = d
+        self.data["dim_y"] = int(rows)     # rows
+        self.data["dim_z"] = int(levels)   # levels
+        self.data["dim_q"] = int(phases)   # Fourth dimension 'hither/yon' hither = u, yon = d
 
         # Max carved nodes.
         self.data["max_carved_nodes_percent"] = int(max_carved_nodes_percent)
@@ -521,10 +533,6 @@ class Map(object):
 
         if autocarve:
             self.recursive_backtrack3()
-
-        if draw:
-            display = self.__repr__()
-            print(display)
 
     def __repr__(self):
         """ This will show the basic Map object data. """
