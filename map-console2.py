@@ -364,6 +364,23 @@ class MapGenerator(object):
             report_lst.append(row_string)
         return report_lst
 
+    def get_legend(self):
+        return [
+            "MAP LEGEND",
+            R + "O" + w + "        = current position",
+            B + "---" + w + "      = edge of build zone",
+            " #       = uncarved cell",
+            ">, <     = directed eastward, westward exits, ",
+            "^, v     = up, down exits",
+            "X        = up/down in same cell, a chimney",
+            ".__ or ! = door exits, colored by keylevel"
+        ]
+
+    def display_legend_data(self):
+        data = self.get_legend_data()
+        for line in data:
+            print(line)
+
     # CARVING
 
     def random_position(self, map):
