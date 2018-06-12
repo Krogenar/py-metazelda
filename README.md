@@ -1,5 +1,5 @@
 # py-metazelda
-Python-based level generation, inspired by MetaZelda.
+Python-based level generation, inspired by MetaZelda - https://github.com/tcoxon/metazelda
 ```
 Some example usage below.
 >>> g = Map()
