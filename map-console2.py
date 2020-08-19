@@ -8,6 +8,9 @@ import re
 import copy
 
 """
+   
+    8/15/2020 - Reconfigure for Python 3 and updated NetworkX library!
+
     1/31/18 TO DO LIST
     1. Move carving functions over to MapGenerator
     2. Create a basic testing suite
@@ -111,7 +114,7 @@ class MapGenerator(object):
         """
         This returns a list of the nodes that connect node1 to node2
         :param map: the map to be checked
-        :param node1: the starting node, in the form 'row:col:lev:q'
+        :param node1: the starting node, in the form 'row:col:lev'
         :param node2: as above. but the ending node
         :return: a list of nodes starting with node1, leading to node2
         """
@@ -209,7 +212,7 @@ class MapGenerator(object):
 
         row_start, row_end, col_start, col_end = self.get_display_constraints(map)
 
-        for r in xrange(row_start, row_end):
+        for r in range(row_start, row_end):
             row_string = ""  # Not defaulting to "|" because view could be truncated.
 
             # check color conditions for rows
@@ -223,10 +226,10 @@ class MapGenerator(object):
             else:
                 under_string = "+"
 
-            for c in xrange(col_start, col_end):
+            for c in range(col_start, col_end):
 
                 # get basic node data
-                node_name = map.node_code(r, c, map.data["cur_lev"], map.data["cur_q"])
+                node_name = map.node_code(r, c, map.data["cur_lev"])
                 node_carved = map.data["graph"].node[node_name]["carved"]
                 node_exits = map.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = map.get_carved_inward_edges_by_direction(node_name)
@@ -377,13 +380,13 @@ class MapGenerator(object):
             print(line)
 
     def get_map_data(self, map):
-        cur_row, cur_col, cur_lev, cur_q = map.get_current_position()
+        cur_row, cur_col, cur_lev = map.get_current_position()
         data = map.data
 
         repr_lst = [
             "{} class object with a description of: '{}'".format(type(map), data["description"]),
             "id: '{}' with dimensions: {} rows, by {} columns and {} level(s)".format(data["id"], data["dim_y"], data["dim_x"], data["dim_z"]),
-            "Current Position is: row: {}, column: {}, level: {}, q_dim: {}".format(cur_row, cur_col, cur_lev, cur_q)
+            "Current Position is: row: {}, column: {}, level: {}".format(cur_row, cur_col, cur_lev)
         ]
         return repr_lst
 
@@ -398,7 +401,6 @@ class MapGenerator(object):
         map.data["cur_row"] = random.randint(0, int(map.data["dim_y"]) - 1)
         map.data["cur_col"] = random.randint(0, int(map.data["dim_x"]) - 1)
         map.data["cur_lev"] = random.randint(0, int(map.data["dim_z"]) - 1)
-        map.data["cur_q"] = random.randint(0, int(map.data["dim_q"]) - 1)
 
     def reset(self, map, view=True):
         """
@@ -422,7 +424,7 @@ class MapGenerator(object):
         will be set to 'carved' if it is not already.
         :param map: map to be dug
         :param view: boolean, view the map after dig is complete?
-        :param kwargs: direction=str, row=int, col=int, level=int, q=int, move=bool, directed=bool
+        :param kwargs: direction=str, row=int, col=int, level=int, move=bool, directed=bool
         :return:
         """
         map.dig(direction=direction, **kwargs)
@@ -442,35 +444,32 @@ class MapGenerator(object):
         if view:
             self.view(map)
 
-    def goto(self, map, row=0, column=0, level=0, q=0, view=True):
+    def goto(self, map, row=0, column=0, level=0, view=True):
         """
         update the current position for the specified map object.
         :param map:
         :param row:
         :param column:
         :param level:
-        :param q:
         :param kwargs:
         :return:
         """
-        if int(row) in range(0, map.data["dim_y"]) and int(column) in range(0, map.data["dim_x"]) and int(level) in range(0, map.data["dim_z"]) and int(q) in range(0, map.data["dim_q"]):
+        if int(row) in range(0, map.data["dim_y"]) and int(column) in range(0, map.data["dim_x"]) and int(level) in range(0, map.data["dim_z"]):
             map.data["cur_row"] = int(row)
             map.data["cur_col"] = int(column)
             map.data["cur_lev"] = int(level)
-            map.data["cur_q"] = int(q)
         else:
             raise Exception("Goto location not valid.")
 
         if view:
             self.view(map)
 
-
 class Map(object):
     NAME = 'Map'
     SIGNATURE = '"name"="Map Name", "author"="str", "rows"="int", "columns"="int", "levels"="int", "max_carved_nodes_percent"="int"'
     COMMANDS = []
 
-    def __init__(self, name=None, seed=None, author=None, description='A Map object.', rows=3, columns=3, levels=1, phases=1, max_carved_nodes_percent=100, autocarve=True, random_start=False, river=50, keys=0):
+    def __init__(self, name=None, seed=None, author=None, description='A Map object.', rows=3, columns=3, levels=1, max_carved_nodes_percent=100, autocarve=True, random_start=False, river=50, keys=0):
         """
         Remove seed, max_carved, autocarve, randomstart, draw, river and keys from this, place in MapGenerator instead.
         """
@@ -490,7 +489,7 @@ class Map(object):
         self.data["dim_x"] = int(columns)  # columns
         self.data["dim_y"] = int(rows)     # rows
         self.data["dim_z"] = int(levels)   # levels
-        self.data["dim_q"] = int(phases)   # Fourth dimension 'hither/yon' hither = u, yon = d
+        #self.data["dim_q"] = int(phases)   # Fourth dimension 'hither/yon' hither = u, yon = d
 
         # Max carved nodes.
         self.data["max_carved_nodes_percent"] = int(max_carved_nodes_percent)
@@ -505,22 +504,21 @@ class Map(object):
         # Other attributes.
         self.data["river"] = river   # Likelihood of continuing in straight line.
         self.data["z_river"] = 95    # Likelihood of remaining on the current level.
-        self.data["q_river"] = 50    # Likelihood of remaining hither.
+        #self.data["q_river"] = 50    # Likelihood of remaining hither.
 
         # CurrentPosition
         if random_start:
             self.data["cur_row"] = random.randint(0, int(rows) - 1)
             self.data["cur_col"] = random.randint(0, int(columns) - 1)
             self.data["cur_lev"] = random.randint(0, int(levels) - 1)
-            self.data["cur_q"] = random.randint(0, int(phases) - 1)
         else:
-            self.data["cur_row"] = self.data["cur_col"] = self.data["cur_lev"] = self.data["cur_q"] = 0
+            self.data["cur_row"] = self.data["cur_col"] = self.data["cur_lev"] = 0
 
         # Valid directions dictionary
-        self.dirs = {"north": "south", "east": "west", "south": "north", "west": "east", "up": "down", "down": "up", "hither": "yon", "yon": "hither"}
+        self.dirs = {"north": "south", "east": "west", "south": "north", "west": "east", "up": "down", "down": "up"}
         self.dir_weights = {"n": 2250, "e": 2250, "s": 2250, "w": 2250, "u": 250, "d": 250, "h": 250, "y": 250}
-        self.comparisons = {(-1, 0, 0, 0): "north", (0, 1, 0, 0): "east", (1, 0, 0, 0): "south", (0, -1, 0, 0): "west", (0, 0, -1, 0): "up", (0, 0, 1, 0): "down", (0, 0, 0, -1): "hither", (0, 0, 0, 1): "yon"}
-        self.dirs_short_to_long = {"n": "north", "e": "east", "s": "south", "w": "west", "u": "up", "d": "down", "h": "hither", "y": "yon"}
+        self.comparisons = {(-1, 0, 0, 0): "north", (0, 1, 0, 0): "east", (1, 0, 0, 0): "south", (0, -1, 0, 0): "west", (0, 0, -1, 0): "up", (0, 0, 1, 0): "down"}
+        self.dirs_short_to_long = {"n": "north", "e": "east", "s": "south", "w": "west", "u": "up", "d": "down"}
 
         # Create the map and graph.
         self.generate_graph()
@@ -539,17 +537,17 @@ class Map(object):
         desc = self.data["description"]
         class_type = self.data["class"]
         id = self.data["id"]
-        dim_y, dim_x, dim_z, dim_q = self.get_map_dimensions()
-        cur_row, cur_col, cur_lev, cur_q = self.get_current_position()
+        dim_y, dim_x, dim_z = self.get_map_dimensions()
+        cur_row, cur_col, cur_lev = self.get_current_position()
         repr_lst = ["{} with a description of: '{}'".format(class_type, desc)]
-        repr_lst.append("id: '{}' with dimensions: {} rows, by {} columns and {} level(s)".format(id, dim_y, dim_x, dim_z, dim_q))
-        repr_lst.append("Current Position is: row: {}, column: {}, level: {}, q_dim: {}".format(cur_row, cur_col, cur_lev, cur_q))
+        repr_lst.append("id: '{}' with dimensions: {} rows, by {} columns and {} level(s)".format(id, dim_y, dim_x, dim_z))
+        repr_lst.append("Current Position is: row: {}, column: {}, level: {}".format(cur_row, cur_col, cur_lev))
 
         display_lst = self.get_graph_display()
         if display_lst:
             repr_lst += display_lst
 
-        node_lst = self.display_node_data(self.node_code(cur_row, cur_col, cur_lev, cur_q))
+        node_lst = self.display_node_data(self.node_code(cur_row, cur_col, cur_lev))
         if node_lst:
             repr_lst += node_lst
 
@@ -578,20 +576,18 @@ class Map(object):
 
     def get_current_position(self):
         """
-        :return: tuple in format (cur_row, cur_col, cur_lev, cur_q)
+        :return: tuple in format (cur_row, cur_col, cur_lev)
         """
         cur_row = self.data["cur_row"]
         cur_col = self.data["cur_col"]
         cur_lev = self.data["cur_lev"]
-        cur_q = self.data["cur_q"]
-        return cur_row, cur_col, cur_lev, cur_q
+        return cur_row, cur_col, cur_lev
 
-    def set_current_position(self, row, col, lev, q):
+    def set_current_position(self, row, col, lev):
         """
         :param row:
         :param col:
         :param lev:
-        :param q:
         :return:
         """
 
@@ -610,20 +606,14 @@ class Map(object):
         else:
             raise ValueError("The level value supplied '{}' is outside the valid range.".format(int(lev)))
 
-        if 0 <= int(q) < self.data["dim_q"]:
-            self.data["cur_q"] = int(q)
-        else:
-            raise ValueError("The q value supplied '{}' is outside the valid range.".format(int(q)))
-
     def get_map_dimensions(self):
         """
-        :return: tuple in format (dim_y, dim_x, dim_z, dim_q)
+        :return: tuple in format (dim_y, dim_x, dim_z)
         """
         dim_x = self.data["dim_x"]
         dim_y = self.data["dim_y"]
         dim_z = self.data["dim_z"]
-        dim_q = self.data["dim_q"]
-        return dim_y, dim_x, dim_z, dim_q
+        return dim_y, dim_x, dim_z
 
     def get_random_uncarved_node(self):
         """
@@ -704,7 +694,7 @@ class Map(object):
 
         row_start, row_end, col_start, col_end = self.get_display_constraints()
 
-        for r in xrange(row_start, row_end):
+        for r in range(row_start, row_end):
             row_string = ""  # Not defaulting to "|" because view could be truncated.
 
             # check color conditions for rows
@@ -718,10 +708,10 @@ class Map(object):
             else:
                 under_string = "+"
 
-            for c in xrange(col_start, col_end):
+            for c in range(col_start, col_end):
 
                 # get basic node data
-                node_name = self.node_code(r, c, self.data["cur_lev"], self.data["cur_q"])
+                node_name = self.node_code(r, c, self.data["cur_lev"])
                 node_carved = self.data["graph"].node[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
@@ -866,7 +856,7 @@ class Map(object):
 
         row_start, row_end, col_start, col_end = self.get_display_constraints()
 
-        for r in xrange(row_start, row_end):
+        for r in range(row_start, row_end):
             row_string = ""  # Not defaulting to "|" because view could be truncated.
 
             # check color conditions for rows
@@ -880,10 +870,10 @@ class Map(object):
             else:
                 under_string = "+"
 
-            for c in xrange(col_start, col_end):
+            for c in range(col_start, col_end):
 
                 # get basic node data
-                node_name = self.node_code(r, c, self.data["cur_lev"], self.data["cur_q"])
+                node_name = self.node_code(r, c, self.data["cur_lev"])
                 node_carved = self.data["graph"].node[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
@@ -1027,7 +1017,7 @@ class Map(object):
 
         row_start, row_end, col_start, col_end = self.get_display_constraints()
 
-        for r in xrange(row_start, row_end):
+        for r in range(row_start, row_end):
             row_string = ""  # Not defaulting to "|" because view could be truncated.
 
             # check color conditions for rows
@@ -1041,10 +1031,10 @@ class Map(object):
             else:
                 under_string = "+"
 
-            for c in xrange(col_start, col_end):
+            for c in range(col_start, col_end):
 
                 # get basic node data
-                node_name = self.node_code(r, c, self.data["cur_lev"], self.data["cur_q"])
+                node_name = self.node_code(r, c, self.data["cur_lev"])
                 node_carved = self.data["graph"].node[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
@@ -1196,7 +1186,7 @@ class Map(object):
         This function does nothing to node attributes.
         :return:
         """
-        paths = self.get_cardinal_edges(self.data["dim_x"], self.data["dim_y"], self.data["dim_z"], self.data["dim_q"])
+        paths = self.get_cardinal_edges(self.data["dim_x"], self.data["dim_y"], self.data["dim_z"])
         # Now add all the edges to the DiGraph. This also adds the nodes as well, although without attributes.
         for key in paths:
             lst = paths[key]
@@ -1278,95 +1268,72 @@ class Map(object):
             display = self.__repr__()
             print(display)
 
-    def get_cardinal_edges(self, x_dim, y_dim, z_dim, q_dim):
+    def get_cardinal_edges(self, x_dim, y_dim, z_dim):
         """
         return a list of lists, each interior list representing a path of edges.
         :param x_dim:
         :param y_dim:
         :param z_dim:
-        :param q_dim:
         :return:
         """
         all_paths = dict()
         # These functions return a dictionary, which then gets added to all_paths
-        all_paths.update(self.get_row_paths(y_dim, x_dim, z_dim, q_dim))
-        all_paths.update(self.get_column_paths(y_dim, x_dim, z_dim, q_dim))
-        all_paths.update(self.get_level_paths(y_dim, x_dim, z_dim, q_dim))
-        all_paths.update(self.get_dim_paths(y_dim, x_dim, z_dim, q_dim))
+        all_paths.update(self.get_row_paths(y_dim, x_dim, z_dim))
+        all_paths.update(self.get_column_paths(y_dim, x_dim, z_dim))
+        all_paths.update(self.get_level_paths(y_dim, x_dim, z_dim))
         return all_paths
 
     # Loop through all dimensions. (enters T.A.R.D.I.S)
 
-    def get_column_paths(self, rows, columns, levels, dims):
+    def get_column_paths(self, rows, columns, levels):
 
         paths = dict()  # This will hold all the generated paths.
         paths["south"] = []
         paths["north"] = []
 
-        for q in xrange(dims):
-            for z in xrange(levels):
-                for y in xrange(columns):
-                    column_path = []
-                    for x in xrange(rows):
-                        column_path.append(self.node_code(x, y, z, q))
-                    if len(column_path) > 1:  # if there's only a single node, it's not a path.
-                        paths["south"].append(tuple(column_path))
-                        column_path.reverse()  # Reverse the path, since this is DiGraph.
-                        paths["north"].append(tuple(column_path))
+        for z in range(levels):
+            for y in range(columns):
+                column_path = []
+                for x in range(rows):
+                    column_path.append(self.node_code(x, y, z))
+                if len(column_path) > 1:  # if there's only a single node, it's not a path.
+                    paths["south"].append(tuple(column_path))
+                    column_path.reverse()  # Reverse the path, since this is DiGraph.
+                    paths["north"].append(tuple(column_path))
         return paths
 
-    def get_row_paths(self, rows, columns, levels, dims):
+    def get_row_paths(self, rows, columns, levels):
 
         paths = dict()  # This will hold all the generated path dictionaries. Convert to lists later.
         paths["east"] = []
         paths["west"] = []
 
-        for q in xrange(dims):
-            for z in xrange(levels):
-                for x in xrange(rows):
-                    row_path = []
-                    for y in xrange(columns):
-                        row_path.append(self.node_code(x, y, z, q))
-                    if len(row_path) > 1:  # if there's only a single node, it's not a path.
-                        paths["east"].append(tuple(row_path))
-                        row_path.reverse()
-                        paths["west"].append(tuple(row_path))
+        for z in range(levels):
+            for x in range(rows):
+                row_path = []
+                for y in range(columns):
+                    row_path.append(self.node_code(x, y, z))
+                if len(row_path) > 1:  # if there's only a single node, it's not a path.
+                    paths["east"].append(tuple(row_path))
+                    row_path.reverse()
+                    paths["west"].append(tuple(row_path))
         return paths
 
-    def get_level_paths(self, rows, columns, levels, dims):
+    def get_level_paths(self, rows, columns, levels):
 
         paths = dict()  # This will hold all the generated path dictionaries. Convert to lists later.
         paths["down"] = []
         paths["up"] = []
 
-        for q in xrange(dims):
-            for x in xrange(rows):
-                for y in xrange(columns):
-                    levels_path = []
-                    for z in xrange(levels):
-                        levels_path.append(self.node_code(x, y, z, q))
-                    if len(levels_path) > 1:  # if there's only a single node, it's not a path.
-                        paths["down"].append(tuple(levels_path))
-                        levels_path.reverse()
-                        paths["up"].append(tuple(levels_path))
-        return paths
-
-    def get_dim_paths(self, rows, columns, levels, dims):
-
-        paths = dict()  # This will hold all the generated path dictionaries. Convert to lists later.
-        paths["yon"] = []
-        paths["hither"] = []
-
-        for x in xrange(rows):
-            for y in xrange(columns):
-                for z in xrange(levels):
-                    dims_path = []
-                    for q in xrange(dims):
-                        dims_path.append(self.node_code(x, y, z, q))
-                    if len(dims_path) > 1:  # if there's only a single node, it's not a path.
-                        paths["yon"].append(tuple(dims_path))
-                        dims_path.reverse()
-                        paths["hither"].append(tuple(dims_path))
+        for x in range(rows):
+            for y in range(columns):
+                levels_path = []
+                for z in range(levels):
+                    levels_path.append(self.node_code(x, y, z))
+                if len(levels_path) > 1:  # if there's only a single node, it's not a path.
+                    paths["down"].append(tuple(levels_path))
+                    levels_path.reverse()
+                    paths["up"].append(tuple(levels_path))
         return paths
 
     # End the NetworkX Graph generation/maintenance methods.
@@ -1506,7 +1473,7 @@ class Map(object):
         This will return a list of uncarved cardinal directions that lead to uncarved nodes,
         when passed a node_name.
         To be used by carving functions.
-        :param node_name: in the format "1:0:0:1" row:col:level:q
+        :param node_name: in the format "1:0:0" row:col:level
         :return: list of allowed directions from the named node ["e", "n"]
         """
 
@@ -1590,14 +1557,14 @@ class Map(object):
 
     # Cell commands.
 
-    def node_check(self, direction, row=None, col=None, lev=None, q=None):
+    def node_check(self, direction, row=None, col=None, lev=None):
         """
         This checks to see if the direction from the specified node would take us
         beyond the map border. May need refinement when passthrough code is implemented.
         Defaults to using the current position.
         """
-        if (row is None) and (col is None) and (lev is None) and (q is None):
-            row, col, lev, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
+        if (row is None) and (col is None) and (lev is None):
+            row, col, lev = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
 
         if direction == "north" and row > 0:
             return True
@@ -1610,10 +1577,6 @@ class Map(object):
         elif direction == "up" and lev > 0:
             return True
         elif direction == "down" and lev < self.data["dim_z"] - 1:
-            return True
-        elif direction == "hither" and q > 0:
-            return True
-        elif direction == "yon" and q < self.data["dim_q"] - 1:
             return True
         else:
             return False
@@ -1659,20 +1622,20 @@ class Map(object):
                 data = tup[2]
                 if data["direction"] == val_dir:
                     destination_node = tup[1]
-                    self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"] = self.node_uncode(destination_node)
+                    self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"] = self.node_uncode(destination_node)
 
-    def node_is_carved(self, row=None, col=None, lev=None, q=None):
-        if (row is None) and (col is None) and (lev is None) and (q is None):
-            row, col, lev, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
+    def node_is_carved(self, row=None, col=None, lev=None):
+        if (row is None) and (col is None) and (lev is None):
+            row, col, lev = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
 
-        node_name = self.node_code(row, col, lev, q)
+        node_name = self.node_code(row, col, lev)
 
         if self.data["graph"].node[node_name]["carved"]:
             return True
         else:
             return False
 
-    def node_open(self, direction, row=None, col=None, lev=None, q=None):
+    def node_open(self, direction, row=None, col=None, lev=None):
         """
         'opening' a node in specified direction does more than just carve that particular edge,
         it also updates the 'exits' attribute for the specified cell.
@@ -1680,14 +1643,13 @@ class Map(object):
         :param row:
         :param col:
         :param lev:
-        :param q:
         :return:
         """
 
-        if (row is None) and (col is None) and (lev is None) and (q is None):
-            row, col, lev, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
+        if (row is None) and (col is None) and (lev is None):
+            row, col, lev = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
 
-        node_name = self.node_code(row, col, lev, q)
+        node_name = self.node_code(row, col, lev)
         val_dir = self.valid_direction(direction)
 
         if val_dir:
@@ -1710,52 +1672,39 @@ class Map(object):
 
             if val_dir == "north":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row - 1, col, lev, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row - 1, col, lev), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row - 1, col, lev, q))
+                    self.carve_edge(node_name, self.node_code(row - 1, col, lev))
 
             elif val_dir == "south":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row + 1, col, lev, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row + 1, col, lev), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row + 1, col, lev, q))
+                    self.carve_edge(node_name, self.node_code(row + 1, col, lev))
 
             elif val_dir == "east":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col + 1, lev, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row, col + 1, lev), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row, col + 1, lev, q))
+                    self.carve_edge(node_name, self.node_code(row, col + 1, lev))
 
             elif val_dir == "west":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col - 1, lev, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row, col - 1, lev), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row, col - 1, lev, q))
+                    self.carve_edge(node_name, self.node_code(row, col - 1, lev))
 
             elif val_dir == "up":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col, lev - 1, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row, col, lev - 1), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row, col, lev - 1, q))
+                    self.carve_edge(node_name, self.node_code(row, col, lev - 1))
 
             elif val_dir == "down":
                 if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col, lev + 1, q), key_level=self.data["current_key_level"])
+                    self.carve_edge(node_name, self.node_code(row, col, lev + 1), key_level=self.data["current_key_level"])
                 else:
-                    self.carve_edge(node_name, self.node_code(row, col, lev + 1, q))
-
-            elif val_dir == "hither":
-                if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col, lev, q - 1), key_level=self.data["current_key_level"])
-                else:
-                    self.carve_edge(node_name, self.node_code(row, col, lev, q - 1))
-
-            elif val_dir == "yon":
-                if key_level_has_incremented or (self.get_node_key_level(node_name) < self.data["current_key_level"]):
-                    self.carve_edge(node_name, self.node_code(row, col, lev, q + 1), key_level=self.data["current_key_level"])
-                else:
-                    self.carve_edge(node_name, self.node_code(row, col, lev, q + 1))
-
+                    self.carve_edge(node_name, self.node_code(row, col, lev + 1))
             else:
                 pass
         else:
@@ -1763,12 +1712,12 @@ class Map(object):
             pass
 
     # node_close removes a direction from a node's "exits" dictionary
-    def node_close(self, direction, row=None, col=None, lev=None, q=None):
+    def node_close(self, direction, row=None, col=None, lev=None):
 
-        if row is None and col is None and lev is None and q is None:
-            row, col, lev, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
+        if row is None and col is None and lev is None:
+            row, col, lev = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
 
-        node_name = self.node_code(row, col, lev, q)
+        node_name = self.node_code(row, col, lev)
 
         val_dir = self.valid_direction(direction)
 
@@ -1778,36 +1727,28 @@ class Map(object):
 
             # now update the edge carved attribute
             if val_dir == "north":
-                self.uncarve_edge(node_name, self.node_code(row - 1, col, lev, q))
+                self.uncarve_edge(node_name, self.node_code(row - 1, col, lev))
                 self.remove_node_exit(node_name, "north")
 
             elif val_dir == "south":
-                self.uncarve_edge(node_name, self.node_code(row + 1, col, lev, q))
+                self.uncarve_edge(node_name, self.node_code(row + 1, col, lev))
                 self.remove_node_exit(node_name, "south")
 
             elif val_dir == "east":
-                self.uncarve_edge(node_name, self.node_code(row, col + 1, lev, q))
+                self.uncarve_edge(node_name, self.node_code(row, col + 1, lev))
                 self.remove_node_exit(node_name, "east")
 
             elif val_dir == "west":
-                self.uncarve_edge(node_name, self.node_code(row, col - 1, lev, q))
+                self.uncarve_edge(node_name, self.node_code(row, col - 1, lev))
                 self.remove_node_exit(node_name, "west")
 
             elif val_dir == "up":
-                self.uncarve_edge(node_name, self.node_code(row, col, lev - 1, q))
+                self.uncarve_edge(node_name, self.node_code(row, col, lev - 1))
                 self.remove_node_exit(node_name, "up")
 
             elif val_dir == "down":
-                self.uncarve_edge(node_name, self.node_code(row, col, lev + 1, q))
+                self.uncarve_edge(node_name, self.node_code(row, col, lev + 1))
                 self.remove_node_exit(node_name, "down")
-
-            elif val_dir == "hither":
-                self.uncarve_edge(node_name, self.node_code(row, col, lev, q - 1))
-                self.remove_node_exit(node_name, "hither")
-
-            elif val_dir == "yon":
-                self.uncarve_edge(node_name, self.node_code(row, col, lev, q + 1))
-                self.remove_node_exit(node_name, "yon")
         else:
             #print("node_close error: unknown direction input")
             pass
@@ -1842,20 +1783,19 @@ class Map(object):
             pass
             #print("add_node_exit: direction '{}' found in 'exits' - not added.")
 
-    # node_code -- returns the 'x:y:z:q' string for a given node. For membership checks. Default to cur_pos.
-    def node_code(self, row=None, col=None, lev=None, q=None):
-        if row is None and col is None and lev is None and q is None:
+    # node_code -- returns the 'x:y:z' string for a given node. For membership checks. Default to cur_pos.
+    def node_code(self, row=None, col=None, lev=None):
+        if row is None and col is None and lev is None:
             row = self.data["cur_row"]
             col = self.data["cur_col"]
             lev = self.data["cur_lev"]
-            q = self.data["cur_q"]
-        return str(row) + ":" + str(col) + ":" + str(lev) + ":" + str(q)
+        return str(row) + ":" + str(col) + ":" + str(lev)
 
     def node_uncode(self, node_name):
         """
         When given a node_name this will return a tuple.
-        :param node_name: "1:1:0:0"
-        :return: (1, 1, 0, 0)
+        :param node_name: "1:1:0"
+        :return: (1, 1, 0)
         """
         data = node_name.split(":")
         int_data = map(int, data)
@@ -1863,11 +1803,11 @@ class Map(object):
 
     # Carving methods.
 
-    def dig(self, direction=None, row=None, column=None, level=None, q=None, move=True, directed=False):
+    def dig(self, direction=None, row=None, column=None, level=None, move=True, directed=False):
 
-        if row is None and column is None and level is None and q is None:
-            row, column, level, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
-        node_name = self.node_code(row, column, level, q)
+        if row is None and column is None and level is None:
+            row, column, level = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
+        node_name = self.node_code(row, column, level)
 
         # Set the current node/node as carved, if it has not been.
         if not self.node_is_carved():
@@ -1934,14 +1874,14 @@ class Map(object):
             #print("node_carve: No direction was passed.")
             pass
 
-    def node_uncarve(self, row=None, col=None, lev=None, q=None):
+    def node_uncarve(self, row=None, col=None, lev=None):
         # is never supplied with direction, since uncarving a node polls
         # the connected nodes and closes off their edges to the node.
         # If not used on a deadend node, this can lead to isolated nodes.
-        if row is None and col is None and lev is None and q is None:
-            row, col, lev, q = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"], self.data["cur_q"]
+        if row is None and col is None and lev is None:
+            row, col, lev = self.data["cur_row"], self.data["cur_col"], self.data["cur_lev"]
 
-        node_name = self.node_code(row, col, lev, q)
+        node_name = self.node_code(row, col, lev)
 
         if self.data["graph"].node[node_name]["carved"] is True:
             # mark the current node as uncarved.
@@ -1966,7 +1906,7 @@ class Map(object):
                 #print("There are no exits to close.")
                 pass
         else:
-            #print("The node at ({}, {}, {}, {}) isn't carved, so it cannot be uncarved.".format(row, col, lev, q))
+            #print("The node at ({}, {}, {}, {}) isn't carved, so it cannot be uncarved.".format(row, col, lev))
             pass
 
     # Recursive Backtracking Algorithm
