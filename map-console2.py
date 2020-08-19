@@ -230,7 +230,7 @@ class MapGenerator(object):
 
                 # get basic node data
                 node_name = map.node_code(r, c, map.data["cur_lev"])
-                node_carved = map.data["graph"].node[node_name]["carved"]
+                node_carved = map.data["graph"].nodes[node_name]["carved"]
                 node_exits = map.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = map.get_carved_inward_edges_by_direction(node_name)
 
@@ -493,7 +493,7 @@ class Map(object):
 
         # Max carved nodes.
         self.data["max_carved_nodes_percent"] = int(max_carved_nodes_percent)
-        self.data["max_carved_nodes"] = int(((self.data["max_carved_nodes_percent"] / 100.00) * (self.data["dim_x"] * self.data["dim_y"] * self.data["dim_z"] * self.data["dim_q"])))
+        self.data["max_carved_nodes"] = int(((self.data["max_carved_nodes_percent"] / 100.00) * (self.data["dim_x"] * self.data["dim_y"] * self.data["dim_z"])))
 
         #  Key levels progress from 0, 1, 2, etc.
         self.data["highest_key_level"] = int(keys)
@@ -712,7 +712,7 @@ class Map(object):
 
                 # get basic node data
                 node_name = self.node_code(r, c, self.data["cur_lev"])
-                node_carved = self.data["graph"].node[node_name]["carved"]
+                node_carved = self.data["graph"].nodes[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
                 door_data = []
@@ -874,7 +874,7 @@ class Map(object):
 
                 # get basic node data
                 node_name = self.node_code(r, c, self.data["cur_lev"])
-                node_carved = self.data["graph"].node[node_name]["carved"]
+                node_carved = self.data["graph"].nodes[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
 
@@ -1035,7 +1035,7 @@ class Map(object):
 
                 # get basic node data
                 node_name = self.node_code(r, c, self.data["cur_lev"])
-                node_carved = self.data["graph"].node[node_name]["carved"]
+                node_carved = self.data["graph"].nodes[node_name]["carved"]
                 node_exits = self.get_carved_outward_edges_by_direction(node_name)
                 node_entrances = self.get_carved_inward_edges_by_direction(node_name)
                 door_data = []
@@ -1186,12 +1186,15 @@ class Map(object):
         This function does nothing to node attributes.
         :return:
         """
+        g = self.data["graph"]
         paths = self.get_cardinal_edges(self.data["dim_x"], self.data["dim_y"], self.data["dim_z"])
         # Now add all the edges to the DiGraph. This also adds the nodes as well, although without attributes.
         for key in paths:
             lst = paths[key]
             for path in lst:
-                self.data["graph"].add_path(path, carved=False, direction=key, desc="", name="", key_level=None, flags=[])
+                #self.data["graph"].add_path(path, carved=False, direction=key, desc="", name="", key_level=None, flags=[])
+                # Newer version of Networkx DiGraph does not have add_path method.
+                nx.add_path(g, path, carved=False, direction=key, desc="", name="", key_level=None, flags=[])
 
     def set_all_nodes_to_uncarved(self):
         """
@@ -1200,9 +1203,9 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["carved"] = False
-            self.data["graph"].node[n]["exits"] = []  # This may not be necessary.
-            self.data["graph"].node[n]["key_level"] = None
+            self.data["graph"].nodes[n]["carved"] = False
+            self.data["graph"].nodes[n]["exits"] = []  # This may not be necessary.
+            self.data["graph"].nodes[n]["key_level"] = None
 
     def set_all_nodes_to_zero_intensity(self):
         """
@@ -1211,7 +1214,7 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["intensity"] = 0
+            self.data["graph"].nodes[n]["intensity"] = 0
 
     def set_all_node_mob_resets_to_empty(self):
         """
@@ -1219,7 +1222,7 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["mobs"] = []
+            self.data["graph"].nodes[n]["mobs"] = []
 
     def set_all_node_object_resets_to_empty(self):
         """
@@ -1227,7 +1230,7 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["objects"] = []
+            self.data["graph"].nodes[n]["objects"] = []
 
     def clear_all_vnums_from_nodes(self):
         """
@@ -1235,7 +1238,7 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["vnum"] = ""
+            self.data["graph"].nodes[n]["vnum"] = ""
 
     def clear_all_masking_from_nodes(self):
         """
@@ -1243,7 +1246,7 @@ class Map(object):
         :return:
         """
         for n in self.data["graph"].nodes():
-            self.data["graph"].node[n]["masked"] = False
+            self.data["graph"].nodes[n]["masked"] = False
 
     def reset_graph(self, keep_masking=True, autocarve=False, redraw=False):
         """
@@ -1353,10 +1356,10 @@ class Map(object):
             return self.data["graph"].edges(data=True)
 
     def get_node_data(self, node_name):
-        return self.data["graph"].node[node_name]
+        return self.data["graph"].nodes[node_name]
 
     def get_node_key_level(self, node_name):
-        return self.data["graph"].node[node_name].get("key_level", None)
+        return self.data["graph"].nodes[node_name].get("key_level", None)
 
     def display_node_data(self, node_name):
         """
@@ -1464,7 +1467,7 @@ class Map(object):
         is_carved = False
         val_dir = self.valid_direction(dir)
         if val_dir:
-            if val_dir in self.data["graph"].node[node_name]["exits"]:
+            if val_dir in self.data["graph"].nodes[node_name]["exits"]:
                 is_carved = True
         return is_carved
 
@@ -1482,7 +1485,7 @@ class Map(object):
 
         out_dirs = self.data["graph"].out_edges(nbunch, data=True)  # Returns outbound edges.
         for edge in out_dirs:
-            if edge[2]["carved"] is False and self.data["graph"].node[edge[1]]["carved"] is False:
+            if edge[2]["carved"] is False and self.data["graph"].nodes[edge[1]]["carved"] is False:
                 uncarved_out_dirs.append(edge[2]["direction"])
         return uncarved_out_dirs
 
@@ -1539,7 +1542,7 @@ class Map(object):
         print(B + "Edge {} --> {} set to key_level {}".format(node1, node2, key_level) + w)
 
     def carve_node(self, node_name):
-        self.data["graph"].node[node_name]["carved"] = True
+        self.data["graph"].nodes[node_name]["carved"] = True
         # If the key_level for this node has NOT been previously set, set it now.
         if not self.get_node_key_level(node_name):
             self.set_node_key_level(node_name)
@@ -1547,13 +1550,13 @@ class Map(object):
             print(R + "!!! node: {} already has key_level: '{}' set, do not reset!".format(node_name, self.get_node_key_level(node_name)) + w)
 
     def uncarve_node(self, node_name):
-        self.data["graph"].node[node_name]["carved"] = False
+        self.data["graph"].nodes[node_name]["carved"] = False
 
     def set_node_key_level(self, node_name, key_level=None):
         if key_level:
-            self.data["graph"].node[node_name]["key_level"] = int(key_level)
+            self.data["graph"].nodes[node_name]["key_level"] = int(key_level)
         else:
-            self.data["graph"].node[node_name]["key_level"] = self.data["current_key_level"]
+            self.data["graph"].nodes[node_name]["key_level"] = self.data["current_key_level"]
 
     # Cell commands.
 
@@ -1630,7 +1633,7 @@ class Map(object):
 
         node_name = self.node_code(row, col, lev)
 
-        if self.data["graph"].node[node_name]["carved"]:
+        if self.data["graph"].nodes[node_name]["carved"]:
             return True
         else:
             return False
@@ -1761,7 +1764,7 @@ class Map(object):
         :return:
         """
         #print("removing {} to exits at node: {}".format(direction, node_name))
-        exits = self.data["graph"].node[node_name]["exits"]
+        exits = self.data["graph"].nodes[node_name]["exits"]
         if direction in exits:
             exits.remove(direction)
         else:
@@ -1775,7 +1778,7 @@ class Map(object):
         :param dir:
         :return:
         """
-        exits = self.data["graph"].node[node_name]["exits"]
+        exits = self.data["graph"].nodes[node_name]["exits"]
         if direction not in exits:
             #print("adding {} to exits at node: {}".format(direction, node_name))
             exits.append(direction)
@@ -1883,11 +1886,11 @@ class Map(object):
 
         node_name = self.node_code(row, col, lev)
 
-        if self.data["graph"].node[node_name]["carved"] is True:
+        if self.data["graph"].nodes[node_name]["carved"] is True:
             # mark the current node as uncarved.
-            self.data["graph"].node[node_name]["carved"] = False
+            self.data["graph"].nodes[node_name]["carved"] = False
             # now go through all the connected nodes.
-            exits = copy.deepcopy(self.data["graph"].node[node_name]["exits"])
+            exits = copy.deepcopy(self.data["graph"].nodes[node_name]["exits"])
             #print("exits found during uncarve are: {}".format(exits))
             #print("# of exits are: {}".format(len(exits)))
             if exits:
